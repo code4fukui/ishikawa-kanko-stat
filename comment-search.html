@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-  <title>石川県観光アンケート コメント検索（データ出典：Milli - QRアンケートデータ）</title>
+  <title>石川県観光アンケート コメント（データ出典：Milli - QRアンケートデータ）</title>
   <!--
   <meta name="twitter:card" content="summary_large_image">
   <meta property="og:image"  content="https://code4fukui.github.io/fukui-kanko-stat/comment.jpg">
@@ -9,11 +9,10 @@
 </head><body>
   <header>
     <h1 id=title></h1>
-    <a id=subtitle href="https://sites.google.com/view/milli-ishikawa-pref/qr%E3%82%A2%E3%83%B3%E3%82%B1%E3%83%BC%E3%83%88%E3%83%87%E3%83%BC%E3%82%BF"></a>
+    <div class=subtitle><a id=subtitle href="https://sites.google.com/view/milli-ishikawa-pref/qr%E3%82%A2%E3%83%B3%E3%82%B1%E3%83%BC%E3%83%88%E3%83%87%E3%83%BC%E3%82%BF"></a> forked <a href=https://code4fukui.github.io/fukui-kanko-stat/comment-search.html>福井県版</a></div>
     <input id=keyword placeholder="検索キーワードを入力してください"><br>
   </header>
   
-  <script type="module" src="https://code4fukui.github.io/qr-code/qr-code.js"></script>
   <div id=qr>
     <select id=selarea><option>すべてのエリア</option></select>
     <select id=selspot><option>すべての施設</option></select>
@@ -26,6 +25,7 @@
   
   <div id=credit>
     <a href=https://github.com/code4fukui/ishikawa-kanko-stat>src on GitHub</a><br>
+    <script type="module" src="https://code4fukui.github.io/qr-code/qr-code.js"></script>
     <qr-code></qr-code><br>
   </div>
   
@@ -33,9 +33,10 @@
     import { CSV } from "https://js.sabae.cc/CSV.js";
     import { ArrayUtil } from "https://js.sabae.cc/ArrayUtil.js";
     import { ChartPie } from "https://js.sabae.cc/Chart.js";
-    import {} from "./header.js";
+    //import {} from "./header.js";
     import { DateTime } from "https://js.sabae.cc/DateTime.js";
     //import { fetchAreas, getAreaID, setAreaSelect } from "./area.js";
+    import { removeHash } from "https://js.sabae.cc/removeHash.js";
 
     const homepref = "石川県";
 
@@ -92,6 +93,9 @@
       
       const show = (kw) => {
         location.hash = encodeURIComponent(selarea.value) + "," + encodeURIComponent(selspot.value) + "," + (chkwithout.checked ? 1 : 0) + "," + (chkbad.checked ? 1 : 0) + "," + selage.selectedIndex;
+        if (decodeURIComponent(location.hash) == "#すべてのエリア,すべての施設,0,0,0") {
+          removeHash();
+        }
         main.innerHTML = "";
         const names = "ID,回答日時,満足度（施設）,NPS,都道府県,年代,生年,施設".split(",");
         let cnt = 0;
@@ -132,24 +136,27 @@
           }
 
           const ngoodbad = sgoodbad.indexOf(d["満足度（施設）"]);
-          //const ngoodbad2 = sgoodbad.indexOf(d.今後の来訪意向);
-          sumgoodbad[ngoodbad].value++;
-          if (chkbad.checked && ngoodbad < 3) {
+          if (chkbad.checked && ngoodbad < 2) {
             continue;
           }
+
+          //const ngoodbad2 = sgoodbad.indexOf(d.今後の来訪意向);
+          sumgoodbad[ngoodbad].value++;
 
           const goodbad = ["good", "good", "notbad", "bad", "bad"][ngoodbad];
           for (const commentname of commentnames) {
             const comment = d[commentname];
-            s.push(`<div class='comment ${goodbad}''>${commentname}: ${comment}</div>`);
+            if (comment) {
+              s.push(`<div class='comment ${goodbad}''>${commentname}: ${comment}</div>`);
+            }
           }
           //const goodbad2 = ["good", "notbad", "good", "bad", "notbad", "bad", "notbad"][ngoodbad2];
           //s.push(`<div class='comment ${goodbad2}''>${comment2}</div>`);
 
           for (const n of names) {
             if (n == "ID") {
-              //s.push(`${n}: <a href=detail.html#id=${d[n]}>${d[n]}</a>`);
-              s.push(`${n}: ${d[n]}`);
+              s.push(`${n}: <a href=detail.html#id=${d[n]}>${d[n]}</a>`);
+              //s.push(`${n}: ${d[n]}`);
             } else {
               s.push(`${n}: ${d[n]}`);
             }
@@ -227,10 +234,12 @@
       padding: 0;
       margin: 0;
     }
-    #subtitle {
-      display: block;
+    .subtitle {
       font-weight: bold;
       text-decoration: none;
+    }
+    .subtitle a {
+      color: #222 !important;
     }
     .comment {
       font-size: 120%;

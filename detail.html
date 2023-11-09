@@ -1,24 +1,19 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-  <title>福井県観光アンケート 詳細（データ出典：福井県観光連盟）</title>
+  <title>石川県観光アンケート 詳細（データ出典：Milli - QRアンケートデータ）</title>
   <meta name="twitter:card" content="summary_large_image">
 </head><body>
   <header>
-    <h1>福井県観光アンケート 詳細</h1>
-    <a id=subtitle href=https://www.fuku-e.com/feature/detail_266.html>データ出典：福井県観光連盟</a>
+    <h1>石川県観光アンケート 詳細</h1>
+    <a id=subtitle href=https://sites.google.com/view/milli-ishikawa-pref/qr%E3%82%A2%E3%83%B3%E3%82%B1%E3%83%BC%E3%83%88%E3%83%87%E3%83%BC%E3%82%BF>データ出典：Milli - QRアンケートデータ</a>
   </header>
-  
-  <div id=settings>
-    <select id=selarea><option>すべてのエリア</option></select>
-    <label><input id="chkwithout" type="checkbox">県外の方のみ</label>
-    <label><input id="chkwithout2" type="checkbox">複数回答の方のみ</label>
-    <span id=ndata>-</span>件
-  </div>
-  
+    
   <main id=main>
   </main>
+
+  <div class=banner><a href=comment-search.html>石川県観光アンケート コメント</a></div>
   
   <div id=credit>
-    <a href=https://github.com/code4fukui/fukui-kanko-stat>src on GitHub</a><br>
+    <a href=https://github.com/code4fukui/ishikawa-kanko-stat>src on GitHub</a><br>
     <script type="module" src="https://code4fukui.github.io/qr-code/qr-code.js"></script>
     <qr-code></qr-code><br>
   </div>
@@ -26,17 +21,17 @@
   <script type="module">
     import { CSV } from "https://js.sabae.cc/CSV.js";
     import { ArrayUtil } from "https://js.sabae.cc/ArrayUtil.js";
-    import {} from "./header.js";
+    //import {} from "./header.js";
     
     addEventListener("load", async () => {
       const nshow = 100;
       let showid = -1;
       
       //const url = "./fukui-answer.csv";
-      const url = "https://code4fukui.github.io/fukui-kanko-survey/all.csv";
-      const data = CSV.toJSON(await CSV.fetch(url));
-      data.sort((a, b) => -a.回答日時.localeCompare(b.回答日時));
+      const url = "https://code4fukui.github.io/ishikawa-kanko-survey/all.csv";
+      const data = await CSV.fetchJSON(url);
       
+      /*
       const cutnames = [
       "宿でのんびり過ごす", "温泉や露天風呂", "地元の美味しいものを食べる", "花見や紅葉などの自然鑑賞", "名所、旧跡の観光", "テーマパーク（遊園地、動物園、博物館など）", "買い物、アウトレット", "お祭りやイベントへの参加・見物", "スポーツ観戦や芸能鑑賞（コンサート等）", "アウトドア（海水浴、釣り、登山など）", "まちあるき、都市散策", "各種体験（手作り、果物狩りなど）", "スキー・スノボ、マリンスポーツ", "その他スポーツ（ゴルフ、テニスなど）", "ドライブ・ツーリング", "友人・親戚を尋ねる", "出張など仕事関係", "その他",
       "観光展・物産展", "新聞・雑誌・ガイドブック", "TV・ラジオ番組やCM", "観光パンフレット・ポスター", "観光連盟やDMOのHP", "インターネット・アプリ", "Twitter", "Instagram", "Facebook", "ブログ", "友人・知人", "観光協会等の案内所", "タクシードライバーや地元の人", "宿泊施設",
@@ -48,7 +43,8 @@
           delete d[name];
         }
       });
-      
+      */
+      /*
       const areas = ArrayUtil.toUnique(data.map(d => d.回答エリア2)).sort();
       areas.forEach(a => {
         const opt = document.createElement("option");
@@ -59,6 +55,7 @@
         const v = selarea.value;
         return v == "すべてのエリア" ? 0 : parseInt(v);
       };
+      */
       
       const makeTableFromJSON = (d) => {
         const cr = (tag, p) => {
@@ -108,7 +105,7 @@
         const res = [];
         for (let i = 0; i < data.length; i++) {
           const d = data[i];
-          if (d.会員ID == showid) {
+          if (d.ID == showid) {
             res.push(d);
           }
         }
@@ -140,15 +137,16 @@
           location.hash = "id=" + showid;
         } else {
           location.hash = [
-          getArea(),
-          chkwithout.checked ? 1 : 0,
-          chkwithout2.checked ? 1 : 0,
+            getArea(),
+            chkwithout.checked ? 1 : 0,
+            chkwithout2.checked ? 1 : 0,
           ].join(",");
         }
         main.innerHTML = "";
         let cnt = 0;
         const data = filtered();
-        ndata.textContent = data.length;
+        console.log(data);
+        //ndata.textContent = data.length;
         for (let i = 0; i < data.length; i++) {
           const d = data[i];
           const tbl = makeTableFromJSON(d);
@@ -163,20 +161,21 @@
         if (narea) {
           if (narea.startsWith("id=")) {
             showid = narea.substring(3);
-            settings.style.display = "none";
           } else {
-            selarea.selectedIndex = narea;
+            //selarea.selectedIndex = narea;
           }
         }
+        /*
         if (chk) {
           chkwithout.checked = chk == "1";
         }
         if (chk2) {
           chkwithout2.checked = chk2 == "1";
         }
+        */
       }
       show();
-      selarea.onchange = chkwithout.onchange = chkwithout2.onchange = () => show();
+      //selarea.onchange = chkwithout.onchange = chkwithout2.onchange = () => show();
     });
   </script>
   
@@ -197,6 +196,9 @@
       text-align: center;
       font-weight: bold;
       text-decoration: none;
+    }
+    .banner {
+      text-align: center;
     }
     .comment {
       font-size: 120%;

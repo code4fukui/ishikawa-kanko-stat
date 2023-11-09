@@ -1,27 +1,31 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-  <title>福井県観光アンケート コメント検索（データ出典：福井県観光連盟）</title>
+  <title>石川県観光アンケート コメント検索（データ出典：Milli - QRアンケートデータ）</title>
+  <!--
   <meta name="twitter:card" content="summary_large_image">
   <meta property="og:image"  content="https://code4fukui.github.io/fukui-kanko-stat/comment.jpg">
   <meta name="twitter:image" content="https://code4fukui.github.io/fukui-kanko-stat/comment.jpg">
+  -->
   
 </head><body>
   <header>
     <h1 id=title></h1>
-    <a id=subtitle href=https://www.fuku-e.com/feature/detail_266.html></a>
+    <a id=subtitle href="https://sites.google.com/view/milli-ishikawa-pref/qr%E3%82%A2%E3%83%B3%E3%82%B1%E3%83%BC%E3%83%88%E3%83%87%E3%83%BC%E3%82%BF"></a>
     <input id=keyword placeholder="検索キーワードを入力してください"><br>
   </header>
   
   <script type="module" src="https://code4fukui.github.io/qr-code/qr-code.js"></script>
   <div id=qr>
-    <select id=selarea><option value="0">すべてのエリア</option></select>
+    <select id=selarea><option>すべてのエリア</option></select>
+    <select id=selspot><option>すべての施設</option></select>
     <label><input id="chkwithout" type="checkbox">県外の方のみ</label>
+    <label><input id="chkbad" type="checkbox">厳しい意見のみ</label>
     <select id=selage><option>すべての年代</option></select>
   </div>
   
   <main id=main></main>
   
   <div id=credit>
-    <a href=https://github.com/code4fukui/fukui-kanko-stat>src on GitHub</a><br>
+    <a href=https://github.com/code4fukui/ishikawa-kanko-stat>src on GitHub</a><br>
     <qr-code></qr-code><br>
   </div>
   
@@ -30,7 +34,25 @@
     import { ArrayUtil } from "https://js.sabae.cc/ArrayUtil.js";
     import { ChartPie } from "https://js.sabae.cc/Chart.js";
     import {} from "./header.js";
-    import { fetchAreas, getAreaID, setAreaSelect } from "./area.js";
+    import { DateTime } from "https://js.sabae.cc/DateTime.js";
+    //import { fetchAreas, getAreaID, setAreaSelect } from "./area.js";
+
+    const homepref = "石川県";
+
+    export const setAreaSelect = (areas, selarea) => {
+      areas.forEach(a => {
+        const opt = document.createElement("option");
+        opt.textContent = a;
+        selarea.appendChild(opt);
+      });
+    };
+    export const setSpotSelect = (spots, selspot) => {
+      spots.forEach(a => {
+        const opt = document.createElement("option");
+        opt.textContent = a;
+        selspot.appendChild(opt);
+      });
+    };
 
     addEventListener("load", async () => {
       const st = document.title;
@@ -40,27 +62,38 @@
       const nshow = 1000;
 
       //const url = "./fukui-answer.csv";
-      const url = "https://code4fukui.github.io/fukui-kanko-survey/all.csv";
+      const url = "https://code4fukui.github.io/ishikawa-kanko-survey/all.csv";
       const data = CSV.toJSON(await CSV.fetch(url));
-      data.sort((a, b) => -a.回答日時.localeCompare(b.回答日時));
+      const ts = "回答日時";
+      data.sort((a, b) => -a[ts].localeCompare(b[ts]));
 
-      const areas = await fetchAreas();
+      //
+      console.log(ArrayUtil.toUnique(data.map(i => i["満足度（施設）"])))
+
+      const areas = ArrayUtil.toUnique(data.map(i => i.回答エリア));
+      //const areas = await fetchAreas();
       setAreaSelect(areas, selarea);
-      
+
+      const spots = ArrayUtil.toUnique(data.map(i => i.施設));
+      setSpotSelect(spots, selspot);
+
+
       const ageopt = ["10歳未満", "10代", "20代", "30代", "40代", "50代", "60代", "70代", "80歳以上"];
       for (const age of ageopt) {
         const opt = document.createElement("option");
         opt.textContent = age;
         selage.appendChild(opt);
       }
+      for (const d of data) {
+        const y = new DateTime(d.回答日時).day.year - parseInt(d.生年);
+        const age = y >= 80 ? 8 : Math.floor(y / 10);
+        d.年代 = ageopt[age];
+      }
       
-      let bkkw = null;
       const show = (kw) => {
-        kw = kw || bkkw;
-        bkkw = kw;
-        location.hash = selarea.value + "," + (chkwithout.checked ? 1 : 0) + "," + selage.selectedIndex;
+        location.hash = encodeURIComponent(selarea.value) + "," + encodeURIComponent(selspot.value) + "," + (chkwithout.checked ? 1 : 0) + "," + (chkbad.checked ? 1 : 0) + "," + selage.selectedIndex;
         main.innerHTML = "";
-        const names = "会員ID,回答日時,満足度,NPS,都道府県,年代,性別,回答エリア".split(",");
+        const names = "ID,回答日時,満足度（施設）,NPS,都道府県,年代,生年,施設".split(",");
         let cnt = 0;
         const s = [];
         const sgoodbad = ["とても満足", "満足", "どちらでもない", "不満", "とても不満"];
@@ -69,41 +102,54 @@
         });
         for (let i = 0; i < data.length; i++) {
           const d = data[i];
-          if (chkwithout.checked && d.都道府県 == "福井県") {
+          if (chkwithout.checked && d.都道府県 == homepref) {
             continue;
           }
-          const filterarea = selarea.value != 0;
-          if (filterarea && getAreaID(areas, d.回答エリア) != selarea.value) {
+          if (selarea.value  != "すべてのエリア" && d.回答エリア != selarea.value) {
+            continue;
+          }
+          if (selspot.value != "すべての施設" && d.施設 != selspot.value) {
             continue;
           }
           const filterage = selage.value != "すべての年代";
           if (filterage && d.年代 != selage.value) {
             continue;
           }
-          
-          const ngoodbad = sgoodbad.indexOf(d.満足度);
-          const ngoodbad2 = sgoodbad.indexOf(d.今後の来訪意向);
-          
-          const comment = d.満足度の理由;
-          const comment2 = d.福井県に求めるもの;
-          if (!comment && !comment2) {
-            continue;
+
+          const commentnames = [
+            "満足度理由（商品・サービス）", "満足度理由（施設）", "不便理由", "自由意見（県内）",
+          ];
+          if (kw) {
+            let flg = false;
+            for (const commentname of commentnames) {
+              const comment = d[commentname];
+              if (comment.indexOf(kw) >= 0) {
+                flg = true;
+                break;
+              }
+            }
+            if (!flg) continue;
           }
-          if (comment.indexOf(kw) == -1 && comment2.indexOf(kw) == -1) {
-            continue;
-          }
+
+          const ngoodbad = sgoodbad.indexOf(d["満足度（施設）"]);
+          //const ngoodbad2 = sgoodbad.indexOf(d.今後の来訪意向);
           sumgoodbad[ngoodbad].value++;
+          if (chkbad.checked && ngoodbad < 3) {
+            continue;
+          }
 
           const goodbad = ["good", "good", "notbad", "bad", "bad"][ngoodbad];
-          s.push(`<div class='comment ${goodbad}''>${comment}</div>`);
-          const goodbad2 = ["good", "notbad", "good", "bad", "notbad", "bad", "notbad"][ngoodbad2];
-          s.push(`<div class='comment ${goodbad2}''>${comment2}</div>`);
+          for (const commentname of commentnames) {
+            const comment = d[commentname];
+            s.push(`<div class='comment ${goodbad}''>${commentname}: ${comment}</div>`);
+          }
+          //const goodbad2 = ["good", "notbad", "good", "bad", "notbad", "bad", "notbad"][ngoodbad2];
+          //s.push(`<div class='comment ${goodbad2}''>${comment2}</div>`);
+
           for (const n of names) {
-            if (filterarea && n == "回答エリア") {
-              continue;
-            }
-            if (n == "会員ID") {
-              s.push(`${n}: <a href=detail.html#id=${d[n]}>${d[n]}</a>`);
+            if (n == "ID") {
+              //s.push(`${n}: <a href=detail.html#id=${d[n]}>${d[n]}</a>`);
+              s.push(`${n}: ${d[n]}`);
             } else {
               s.push(`${n}: ${d[n]}`);
             }
@@ -120,26 +166,44 @@
         main.appendChild(div);
       };
       if (location.hash.length > 1) {
-        const [narea, chk, nage] = location.hash.substring(1).split(",");
+        const [narea, spot, chk, chk2, nage] = location.hash.substring(1).split(",");
         if (narea) {
-          selarea.value = narea;
+          selarea.value = decodeURIComponent(narea);
+        }
+        if (spot) {
+          selspot.value = decodeURIComponent(spot);
         }
         if (chk) {
           chkwithout.checked = chk == "1";
+        }
+        if (chk2) {
+          chkbad.checked = chk2 == "1";
         }
         if (nage) {
           selage.selectedIndex = nage;
         }
       }
-      //show();
+      show();
       
-      selage.onchange = selarea.onchange = chkwithout.onchange = () => show();
+      const comps = [
+        selage,
+        selspot,
+        selarea,
+        chkwithout,
+        chkbad,
+      ];
+      for (const comp of comps) {
+        comp.onchange = () => show();
+      }
 
       keyword.onchange = () => {
         const kw = keyword.value.trim();
+        /*
         if (!kw) {
           return;
         }
+        */
+        console.log(kw);
         show(kw);
       };
     });

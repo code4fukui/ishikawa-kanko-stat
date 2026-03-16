@@ -14,4 +14,4 @@ An app to utilize open data from the Ishikawa Prefecture Tourism Survey.
 
 ## License
 
-Open source
+MIT License — see [LICENSE](LICENSE).
